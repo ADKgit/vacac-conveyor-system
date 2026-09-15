@@ -8,6 +8,7 @@ public class Product : MonoBehaviour
     private ConveyorSegment current;
     private float distance;
 
+    
     public void PlaceOn(ConveyorSegment segment)
     {
         current = segment;
@@ -26,11 +27,19 @@ public class Product : MonoBehaviour
 
         distance += current.Speed * Time.deltaTime;
 
-        if (distance >= current.Length)
+        
+        while (distance >= current.Length)
         {
-            transform.position = current.GetPointAtDistance(current.Length) + Vector3.up * heightOffset;
-            current = null;
-            return;
+            ConveyorSegment next = current.NextSegment;
+            if (next == null)
+            {
+                transform.position = current.GetPointAtDistance(current.Length) + Vector3.up * heightOffset;
+                current = null;
+                return;
+            }
+
+            distance -= current.Length;
+            current = next;
         }
 
         transform.position = current.GetPointAtDistance(distance) + Vector3.up * heightOffset;
