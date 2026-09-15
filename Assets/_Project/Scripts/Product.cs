@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -10,6 +11,9 @@ public class Product : MonoBehaviour
     [SerializeField] private ConveyorSegment startSegment;
     [SerializeField] private float heightOffset = 0f;
     [SerializeField] private bool destroyAtEndOfLine = true;
+
+    /// <summary>Raised when this product reaches the end of the line.</summary>
+    public event Action<Product> Delivered;
 
     private ConveyorSegment current;
     private float distance;
@@ -59,6 +63,8 @@ public class Product : MonoBehaviour
     {
         transform.position = current.GetPointAtDistance(current.Length) + Vector3.up * heightOffset;
         current = null;
+
+        Delivered?.Invoke(this);
 
         if (destroyAtEndOfLine)
         {

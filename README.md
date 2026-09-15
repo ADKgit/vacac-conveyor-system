@@ -35,6 +35,7 @@ Built for the VACAC Graduate Software Engineer take-home technical task.
 | Space | Start / stop product spawning |
 | W A S D | Pan the camera |
 | Q / E | Orbit the camera |
+| T / G | Tilt the camera |
 | Scroll wheel | Zoom in and out |
 
 ## How it works

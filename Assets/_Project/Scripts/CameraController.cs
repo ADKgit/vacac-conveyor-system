@@ -2,8 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// RTS-style camera. WASD or arrow keys pan, middle mouse drags, the scroll
-/// wheel zooms, and Q/E orbit. Movement is clamped so the camera cannot leave
-/// the build area.
+/// wheel zooms, Q/E orbit horizontally and T/G tilt vertically. Movement is
+/// clamped so the camera cannot leave the build area or flip over.
 /// </summary>
 public class CameraController : MonoBehaviour
 {
@@ -12,11 +12,14 @@ public class CameraController : MonoBehaviour
     [SerializeField] private float dragPanSpeed = 0.03f;
     [SerializeField] private float zoomSpeed = 500f;
     [SerializeField] private float rotationSpeed = 90f;
+    [SerializeField] private float tiltSpeed = 60f;
 
     [Header("Limits")]
     [SerializeField] private float minHeight = 3f;
     [SerializeField] private float maxHeight = 40f;
     [SerializeField] private float panLimit = 40f;
+    [SerializeField] private float minTilt = 5f;
+    [SerializeField] private float maxTilt = 85f;
 
     private Vector3 lastMousePosition;
 
@@ -26,6 +29,7 @@ public class CameraController : MonoBehaviour
         HandleDragPan();
         HandleZoom();
         HandleRotation();
+        HandleTilt();
         ClampPosition();
     }
 
@@ -72,6 +76,27 @@ public class CameraController : MonoBehaviour
         if (direction == 0f) return;
 
         transform.RotateAround(transform.position, Vector3.up, direction * rotationSpeed * Time.deltaTime);
+    }
+
+    /// <summary>
+    /// Tilts the camera up and down, clamped so it can never look past straight
+    /// down or rise above the horizon.
+    /// </summary>
+    private void HandleTilt()
+    {
+        float direction = 0f;
+        if (Input.GetKey(KeyCode.T)) direction = -1f;
+        if (Input.GetKey(KeyCode.G)) direction = 1f;
+
+        if (direction == 0f) return;
+
+        Vector3 angles = transform.eulerAngles;
+
+        // eulerAngles reports 0-360, so convert to -180..180 before clamping.
+        float pitch = angles.x > 180f ? angles.x - 360f : angles.x;
+        pitch = Mathf.Clamp(pitch + direction * tiltSpeed * Time.deltaTime, minTilt, maxTilt);
+
+        transform.eulerAngles = new Vector3(pitch, angles.y, 0f);
     }
 
     private void ClampPosition()
