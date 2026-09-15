@@ -14,6 +14,9 @@ public class Product : MonoBehaviour
     private ConveyorSegment current;
     private float distance;
 
+    /// <summary>The segment this product is currently travelling on, or null.</summary>
+    public ConveyorSegment CurrentSegment => current;
+
     /// <summary>Places this product at the start of the given segment.</summary>
     public void PlaceOn(ConveyorSegment segment)
     {

@@ -261,9 +261,13 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 8
+  conveyorMask:
+    serializedVersion: 2
+    m_Bits: 64
   maxRayDistance: 200
   rotationStep: 90
   snapRadius: 1.5
+  autoConnectTolerance: 0.25
 --- !u!4 &1494547866
 Transform:
   m_ObjectHideFlags: 0
