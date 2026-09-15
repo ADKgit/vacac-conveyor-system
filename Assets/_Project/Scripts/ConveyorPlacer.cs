@@ -3,7 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// Handles runtime placement of conveyor pieces. A ghost preview follows the
-/// mouse across the ground plane; left click commits it, R rotates it.
+/// mouse across the ground plane and snaps to the free exit socket of a nearby
+/// segment. Left click commits the piece, R rotates it.
 /// </summary>
 public class ConveyorPlacer : MonoBehaviour
 {
@@ -11,11 +12,17 @@ public class ConveyorPlacer : MonoBehaviour
     [SerializeField] private LayerMask groundMask;
     [SerializeField] private float maxRayDistance = 200f;
     [SerializeField] private float rotationStep = 90f;
+    [SerializeField] private float snapRadius = 1.5f;
 
     private readonly List<ConveyorSegment> placedSegments = new List<ConveyorSegment>();
 
+    /// <summary>Every conveyor placed so far, in placement order.</summary>
+    public IReadOnlyList<ConveyorSegment> PlacedSegments => placedSegments;
+
     private Camera cam;
     private GameObject ghost;
+    private ConveyorSegment ghostSegment;
+    private ConveyorSegment snapTarget;
     private float ghostYRotation;
 
     private void Awake()
@@ -27,17 +34,17 @@ public class ConveyorPlacer : MonoBehaviour
     {
         ghost = Instantiate(conveyorPrefab);
         ghost.name = "GhostPreview";
+        ghostSegment = ghost.GetComponent<ConveyorSegment>();
         SetCollidersEnabled(ghost, false);
     }
 
     private void Update()
     {
-        UpdateGhostPosition();
+        UpdateGhost();
 
         if (Input.GetKeyDown(KeyCode.R))
         {
             ghostYRotation += rotationStep;
-            ghost.transform.rotation = Quaternion.Euler(0f, ghostYRotation, 0f);
         }
 
         if (Input.GetMouseButtonDown(0))
@@ -46,27 +53,81 @@ public class ConveyorPlacer : MonoBehaviour
         }
     }
 
-    private void UpdateGhostPosition()
+    /// <summary>Moves the ghost to the cursor, then snaps it if a socket is in range.</summary>
+    private void UpdateGhost()
     {
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
         if (Physics.Raycast(ray, out RaycastHit hit, maxRayDistance, groundMask))
         {
             ghost.transform.position = hit.point;
+            ghost.transform.rotation = Quaternion.Euler(0f, ghostYRotation, 0f);
+        }
+
+        snapTarget = FindSnapTarget();
+
+        if (snapTarget != null)
+        {
+            AlignSocketTo(ghost.transform, ghostSegment.EntrySocket, snapTarget.ExitSocket);
         }
     }
 
-    /// <summary>Commits the ghost's current position as a real conveyor piece.</summary>
+    /// <summary>
+    /// Returns the nearest placed segment with a free exit socket within the snap
+    /// radius, or null if there isn't one.
+    /// </summary>
+    private ConveyorSegment FindSnapTarget()
+    {
+        if (ghostSegment == null) return null;
+
+        ConveyorSegment best = null;
+        float bestDistance = snapRadius;
+
+        foreach (ConveyorSegment candidate in placedSegments)
+        {
+            if (!candidate.HasFreeExit) continue;
+
+            float d = Vector3.Distance(ghost.transform.position, candidate.ExitSocket.position);
+            if (d < bestDistance)
+            {
+                bestDistance = d;
+                best = candidate;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>Commits the ghost's current transform as a real conveyor piece.</summary>
     private void PlaceGhost()
     {
         GameObject placed = Instantiate(conveyorPrefab, ghost.transform.position, ghost.transform.rotation);
         placed.name = $"Conveyor_{placedSegments.Count:00}";
 
         ConveyorSegment segment = placed.GetComponent<ConveyorSegment>();
-        if (segment != null)
+        if (segment == null) return;
+
+        if (snapTarget != null)
         {
-            placedSegments.Add(segment);
+            snapTarget.ConnectTo(segment);
         }
+
+        placedSegments.Add(segment);
+    }
+
+    /// <summary>
+    /// Moves <paramref name="piece"/> so that <paramref name="pieceSocket"/> ends up at
+    /// exactly the same world position and rotation as <paramref name="targetSocket"/>.
+    /// Rotation must be applied before the offset is read, because rotating the root
+    /// moves its children in world space.
+    /// </summary>
+    private static void AlignSocketTo(Transform piece, Transform pieceSocket, Transform targetSocket)
+    {
+        Quaternion socketLocalRotation = Quaternion.Inverse(piece.rotation) * pieceSocket.rotation;
+        piece.rotation = targetSocket.rotation * Quaternion.Inverse(socketLocalRotation);
+
+        Vector3 socketOffset = pieceSocket.position - piece.position;
+        piece.position = targetSocket.position - socketOffset;
     }
 
     /// <summary>Ghost pieces must not block raycasts or collide with anything.</summary>
