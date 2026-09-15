@@ -10,6 +10,7 @@ public class HudDisplay : MonoBehaviour
     [SerializeField] private ConveyorPlacer placer;
     [SerializeField] private ProductSpawner spawner;
     [SerializeField] private string[] typeNames = { "Long belt", "Short belt" };
+    [SerializeField] private ApplicationController appController;
 
     private GUIStyle panelStyle;
     private GUIStyle textStyle;
@@ -31,9 +32,9 @@ public class HudDisplay : MonoBehaviour
     {
         EnsureStyles();
 
-        GUI.Box(new Rect(12f, 12f, 260f, 330f), GUIContent.none, panelStyle);
+        GUI.Box(new Rect(12f, 12f, 260f, 370f), GUIContent.none, panelStyle);
 
-        GUILayout.BeginArea(new Rect(24f, 24f, 240f, 320f));
+        GUILayout.BeginArea(new Rect(24f, 24f, 240f, 360f));
 
         GUILayout.Label("CONTROLS", textStyle);
         GUILayout.Label("Left click   Place conveyor", textStyle);
@@ -45,6 +46,8 @@ public class HudDisplay : MonoBehaviour
         GUILayout.Label("Q / E        Orbit camera", textStyle);
         GUILayout.Label("T / G        Tilt camera", textStyle);
         GUILayout.Label("Scroll       Zoom", textStyle);
+        GUILayout.Label("P            Pause / resume", textStyle);
+        GUILayout.Label("Esc          Quit", textStyle);
 
         GUILayout.Space(8f);
         GUILayout.Label($"Selected: {CurrentTypeName()}", textStyle);
@@ -60,6 +63,12 @@ public class HudDisplay : MonoBehaviour
         }
 
         GUILayout.EndArea();
+
+        if (appController != null && appController.IsPaused)
+        {
+            GUILayout.Space(4f);
+            GUILayout.Label("PAUSED", textStyle);
+        }
     }
 
     private string CurrentTypeName()
