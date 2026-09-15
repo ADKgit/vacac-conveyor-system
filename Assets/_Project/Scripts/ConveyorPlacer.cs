@@ -2,15 +2,20 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Handles runtime placement of conveyor pieces. A ghost preview follows the
-/// mouse across the ground plane and snaps to the free exit socket of a nearby
-/// segment. Left click commits the piece, R rotates it.
+/// Handles runtime placement of conveyor pieces. A translucent ghost preview
+/// follows the mouse across the ground plane and snaps to the free exit socket
+/// of a nearby segment. Left click commits the piece, R rotates it.
 /// </summary>
 public class ConveyorPlacer : MonoBehaviour
 {
+    [Header("Prefabs")]
     [SerializeField] private GameObject conveyorPrefab;
+
+    [Header("Raycasting")]
     [SerializeField] private LayerMask groundMask;
     [SerializeField] private float maxRayDistance = 200f;
+
+    [Header("Placement")]
     [SerializeField] private float rotationStep = 90f;
     [SerializeField] private float snapRadius = 1.5f;
 
@@ -22,6 +27,7 @@ public class ConveyorPlacer : MonoBehaviour
     private Camera cam;
     private GameObject ghost;
     private ConveyorSegment ghostSegment;
+    private GhostVisual ghostVisual;
     private ConveyorSegment snapTarget;
     private float ghostYRotation;
 
@@ -32,10 +38,7 @@ public class ConveyorPlacer : MonoBehaviour
 
     private void Start()
     {
-        ghost = Instantiate(conveyorPrefab);
-        ghost.name = "GhostPreview";
-        ghostSegment = ghost.GetComponent<ConveyorSegment>();
-        SetCollidersEnabled(ghost, false);
+        CreateGhost();
     }
 
     private void Update()
@@ -51,6 +54,18 @@ public class ConveyorPlacer : MonoBehaviour
         {
             PlaceGhost();
         }
+    }
+
+    /// <summary>Spawns the preview instance and strips it of anything a real piece needs.</summary>
+    private void CreateGhost()
+    {
+        ghost = Instantiate(conveyorPrefab);
+        ghost.name = "GhostPreview";
+
+        ghostSegment = ghost.GetComponent<ConveyorSegment>();
+        SetCollidersEnabled(ghost, false);
+
+        ghostVisual = ghost.AddComponent<GhostVisual>();
     }
 
     /// <summary>Moves the ghost to the cursor, then snaps it if a socket is in range.</summary>
@@ -69,6 +84,11 @@ public class ConveyorPlacer : MonoBehaviour
         if (snapTarget != null)
         {
             AlignSocketTo(ghost.transform, ghostSegment.EntrySocket, snapTarget.ExitSocket);
+        }
+
+        if (ghostVisual != null)
+        {
+            ghostVisual.SetSnapping(snapTarget != null);
         }
     }
 
