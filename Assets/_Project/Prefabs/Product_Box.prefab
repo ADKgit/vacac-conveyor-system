@@ -251,5 +251,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startSegment: {fileID: 0}
-  heightOffset: 0
+  heightOffset: 0.1
   destroyAtEndOfLine: 1
