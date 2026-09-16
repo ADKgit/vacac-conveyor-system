@@ -308,6 +308,8 @@ MonoBehaviour:
   typeNames:
   - Long belt
   - Short belt
+  - Incline
+  - Decline
   appController: {fileID: 737595237}
 --- !u!4 &1373860922
 Transform:
@@ -587,7 +589,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   panSpeed: 15
   dragPanSpeed: 0.03
-  zoomSpeed: 500
+  zoomSpeed: 1200
   rotationSpeed: 90
   tiltSpeed: 60
   minHeight: 3
