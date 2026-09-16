@@ -5,7 +5,8 @@ using UnityEngine;
 /// Handles runtime placement and removal of conveyor pieces. A translucent ghost
 /// preview follows the mouse across the ground plane and snaps to the free exit
 /// socket of a nearby segment. Left click commits a piece, right click removes the
-/// piece under the cursor, R rotates the preview, and number keys change the type.
+/// piece under the cursor, R rotates the preview, F reverses its direction, and
+/// number keys change the type.
 /// </summary>
 public class ConveyorPlacer : MonoBehaviour
 {
@@ -23,10 +24,6 @@ public class ConveyorPlacer : MonoBehaviour
     [SerializeField] private float snapRadius = 1.5f;
     [SerializeField] private float autoConnectTolerance = 0.25f;
 
-    [Header("Debug")]
-    [Tooltip("Logs placement and snapping diagnostics to the Console.")]
-    [SerializeField] private bool verboseLogging = true;
-
     private readonly List<ConveyorSegment> placedSegments = new List<ConveyorSegment>();
 
     /// <summary>Every conveyor placed so far, in placement order.</summary>
@@ -34,6 +31,9 @@ public class ConveyorPlacer : MonoBehaviour
 
     /// <summary>Index of the conveyor type currently selected for placement.</summary>
     public int SelectedIndex { get; private set; }
+
+    /// <summary>Whether the next piece placed will have its direction reversed.</summary>
+    public bool IsFlipped => ghostFlipped;
 
     /// <summary>How many conveyor types are available.</summary>
     public int TypeCount => conveyorPrefabs != null ? conveyorPrefabs.Length : 0;
@@ -44,6 +44,7 @@ public class ConveyorPlacer : MonoBehaviour
     private GhostVisual ghostVisual;
     private ConveyorSegment snapTarget;
     private float ghostYRotation;
+    private bool ghostFlipped;
 
     private void Awake()
     {
@@ -61,6 +62,7 @@ public class ConveyorPlacer : MonoBehaviour
 
         if (ghost == null) return;
 
+        HandleFlip();
         UpdateGhost();
 
         if (Input.GetKeyDown(KeyCode.R))
@@ -100,6 +102,19 @@ public class ConveyorPlacer : MonoBehaviour
         }
     }
 
+    /// <summary>Reverses the preview's travel direction, so it can descend as well as climb.</summary>
+    private void HandleFlip()
+    {
+        if (!Input.GetKeyDown(KeyCode.F)) return;
+
+        ghostFlipped = !ghostFlipped;
+
+        if (ghostSegment != null)
+        {
+            ghostSegment.SetFlipped(ghostFlipped);
+        }
+    }
+
     /// <summary>Destroys the current preview and spawns one for the selected type.</summary>
     private void RebuildGhost()
     {
@@ -118,19 +133,10 @@ public class ConveyorPlacer : MonoBehaviour
 
         ghostVisual = ghost.AddComponent<GhostVisual>();
 
-        if (verboseLogging)
+        // Carry the current flip state onto the new preview.
+        if (ghostSegment != null)
         {
-            if (ghostSegment == null)
-            {
-                Debug.LogWarning($"[Placer] '{conveyorPrefabs[SelectedIndex].name}' has no ConveyorSegment on its root.");
-            }
-            else
-            {
-                Debug.Log($"[Placer] Ghost = {conveyorPrefabs[SelectedIndex].name} | " +
-                          $"entry={(ghostSegment.EntrySocket == null ? "NULL" : ghostSegment.EntrySocket.name)} | " +
-                          $"exit={(ghostSegment.ExitSocket == null ? "NULL" : ghostSegment.ExitSocket.name)} | " +
-                          $"length={(ghostSegment.EntrySocket != null && ghostSegment.ExitSocket != null ? ghostSegment.Length.ToString("F3") : "n/a")}");
-            }
+            ghostSegment.SetFlipped(ghostFlipped);
         }
     }
 
@@ -169,30 +175,18 @@ public class ConveyorPlacer : MonoBehaviour
 
         ConveyorSegment best = null;
         float bestDistance = snapRadius;
-        float nearestSeen = float.MaxValue;
 
         foreach (ConveyorSegment candidate in placedSegments)
         {
-            if (candidate == null) continue;
-            if (candidate.ExitSocket == null) continue;
-
-            float d = Vector3.Distance(ghost.transform.position, candidate.ExitSocket.position);
-            if (d < nearestSeen) nearestSeen = d;
-
+            if (candidate == null || candidate.ExitSocket == null) continue;
             if (!candidate.HasFreeExit) continue;
 
+            float d = Vector3.Distance(ghost.transform.position, candidate.ExitSocket.position);
             if (d < bestDistance)
             {
                 bestDistance = d;
                 best = candidate;
             }
-        }
-
-        // Fires once per second so the Console stays readable.
-        if (verboseLogging && Time.frameCount % 60 == 0)
-        {
-            Debug.Log($"[Placer] placed={placedSegments.Count} | nearest exit socket={(nearestSeen == float.MaxValue ? "none" : nearestSeen.ToString("F2"))} | " +
-                      $"snapRadius={snapRadius} | target={(best == null ? "none" : best.name)}");
         }
 
         return best;
@@ -210,8 +204,7 @@ public class ConveyorPlacer : MonoBehaviour
         foreach (ConveyorSegment candidate in placedSegments)
         {
             if (candidate == null || candidate == segment) continue;
-            if (!candidate.HasFreeEntry) continue;
-            if (candidate.EntrySocket == null) continue;
+            if (!candidate.HasFreeEntry || candidate.EntrySocket == null) continue;
 
             float d = Vector3.Distance(segment.ExitSocket.position, candidate.EntrySocket.position);
             if (d < bestDistance)
@@ -231,15 +224,9 @@ public class ConveyorPlacer : MonoBehaviour
         placed.name = $"Conveyor_{placedSegments.Count:00}";
 
         ConveyorSegment segment = placed.GetComponent<ConveyorSegment>();
+        if (segment == null) return;
 
-        if (segment == null)
-        {
-            if (verboseLogging)
-            {
-                Debug.LogWarning($"[Placer] Placed '{placed.name}' but it has no ConveyorSegment — not tracked.");
-            }
-            return;
-        }
+        segment.SetFlipped(ghostFlipped);
 
         if (snapTarget != null)
         {
@@ -253,13 +240,6 @@ public class ConveyorPlacer : MonoBehaviour
         }
 
         placedSegments.Add(segment);
-
-        if (verboseLogging)
-        {
-            Debug.Log($"[Placer] Placed {placed.name} | length={segment.Length:F3} | " +
-                      $"snappedTo={(snapTarget == null ? "none" : snapTarget.name)} | " +
-                      $"forwardTo={(forward == null ? "none" : forward.name)} | total={placedSegments.Count}");
-        }
     }
 
     /// <summary>

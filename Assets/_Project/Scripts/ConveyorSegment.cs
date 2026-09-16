@@ -3,6 +3,11 @@ using UnityEngine;
 /// <summary>
 /// A single conveyor piece. Defines the path products travel along it and the
 /// links to the neighbouring segments in the line.
+///
+/// A segment can be flipped, which swaps which end acts as the entry and which
+/// acts as the exit. Everything else reads the sockets through the properties
+/// below, so flipping reverses travel direction without moving the model — an
+/// inclined piece becomes a declined one.
 /// </summary>
 public class ConveyorSegment : MonoBehaviour
 {
@@ -12,10 +17,13 @@ public class ConveyorSegment : MonoBehaviour
 
     private ConveyorSegment nextSegment;
     private ConveyorSegment previousSegment;
+    private bool isFlipped;
 
-    public Transform EntrySocket => entrySocket;
-    public Transform ExitSocket => exitSocket;
+    public Transform EntrySocket => isFlipped ? exitSocket : entrySocket;
+    public Transform ExitSocket => isFlipped ? entrySocket : exitSocket;
+
     public float Speed => speed;
+    public bool IsFlipped => isFlipped;
     public ConveyorSegment NextSegment => nextSegment;
     public ConveyorSegment PreviousSegment => previousSegment;
 
@@ -23,7 +31,13 @@ public class ConveyorSegment : MonoBehaviour
     public bool HasFreeExit => nextSegment == null;
 
     /// <summary>Distance in world units from the entry socket to the exit socket.</summary>
-    public float Length => Vector3.Distance(entrySocket.position, exitSocket.position);
+    public float Length => Vector3.Distance(EntrySocket.position, ExitSocket.position);
+
+    /// <summary>Swaps which end of this piece products enter and leave by.</summary>
+    public void SetFlipped(bool flipped)
+    {
+        isFlipped = flipped;
+    }
 
     /// <summary>Links this segment's exit to the entry of the given segment.</summary>
     public void ConnectTo(ConveyorSegment next)
@@ -57,6 +71,6 @@ public class ConveyorSegment : MonoBehaviour
     public Vector3 GetPointAtDistance(float distance)
     {
         float t = Mathf.Clamp01(distance / Length);
-        return Vector3.Lerp(entrySocket.position, exitSocket.position, t);
+        return Vector3.Lerp(EntrySocket.position, ExitSocket.position, t);
     }
 }
