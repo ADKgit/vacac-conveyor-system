@@ -109,10 +109,7 @@ the product movement all follow automatically.
 | `HudDisplay` | On-screen control reference and live counters |
 | `ApplicationController` | Pause and quit handling |
 
-The HUD uses Unity's immediate-mode GUI rather than a Canvas. For a tool
-overlay of this size that keeps the scene simpler, though a Canvas-based UI
-would be the right choice for anything more complex.
-
+The HUD uses Unity's immediate-mode GUI rather than a Canvas, which keeps the scene simpler for an overlay of this size. A Canvas-based UI would be the right choice for anything more complex. 
 ## Project structure
 
 ```
@@ -153,6 +150,11 @@ required.
 
 ## Known limitations
 
+- A connected line cannot change direction. When a piece snaps, its rotation
+  is taken entirely from the socket it is joining, so the R key only affects
+  pieces placed in open space. The supplied models include no corner piece,
+  and turning a line would require either a curved segment or allowing the
+  snap to apply a fixed rotation offset at the join
 - Two inclined pieces cannot be chained into a continuous ramp. The sockets
   are not rotated to match the slope, so a piece snapping onto an incline's
   exit arrives level rather than continuing the climb. Rotating the sockets
@@ -169,11 +171,7 @@ required.
   its slope; they stay axis-aligned throughout
 - Products riding a deleted segment are removed rather than re-routed
 - Built layouts cannot be saved or loaded
-- A connected line cannot change direction. When a piece snaps, its rotation
-  is taken entirely from the socket it is joining, so the R key only affects
-  pieces placed in open space. The supplied models include no corner piece,
-  and turning a line would require either a curved segment or allowing the
-  snap to apply a fixed rotation offset at the join
+
 
 ## Repository
 
